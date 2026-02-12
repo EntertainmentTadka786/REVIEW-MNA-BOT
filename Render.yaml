@@ -4,3 +4,13 @@ services:
     env: docker
     plan: free
     branch: main
+    ports:
+      - port: 80
+        protocol: http
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: ADMIN_ID
+        sync: false
+      - key: CHANNEL_ID
+        sync: false

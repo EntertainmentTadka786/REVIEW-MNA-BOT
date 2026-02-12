@@ -3,6 +3,7 @@
 // ENTERTAINMENT TADKA MEGA BOT v3.0
 // COMPLETE MERGE: index.php + index1.php
 // ALL FEATURES + SECURITY + ANALYTICS
+// FIXED: 'break' not in loop/switch error
 // ============================================
 
 // ==================== CONFIGURATION ====================
@@ -2139,11 +2140,11 @@ if ($update) {
                     
                 case '/request':
                     if (!REQUEST_SYSTEM_ENABLED) { sendMessage($chat_id, "❌ Request system is currently disabled."); break; }
-                    if (!isset($parts[1]) && count(explode(' ', $text)) < 2) {
+                    $parts = explode(' ', $text);
+                    if (!isset($parts[1])) {
                         sendMessage($chat_id, "📝 Usage: /request Movie Name\nExample: /request KGF Chapter 3\n\nYou can also type: 'pls add MovieName'");
                         break;
                     }
-                    $parts = explode(' ', $text);
                     $movie_name = implode(' ', array_slice($parts, 1));
                     $user_name = $message['from']['first_name'] . ($message['from']['last_name'] ? ' ' . $message['from']['last_name'] : '');
                     
@@ -2182,15 +2183,15 @@ if ($update) {
                         sendMessage($chat_id, "📭 You haven't made any requests yet.\nUse /request MovieName to request a movie.\n\nOr type: 'pls add MovieName'");
                         break;
                     }
-                    $message = "📋 <b>Your Movie Requests</b>\n\n📊 <b>Stats:</b>\n• Total: " . $user_stats['total_requests'] . "\n• Approved: " . $user_stats['approved'] . "\n• Pending: " . $user_stats['pending'] . "\n• Rejected: " . $user_stats['rejected'] . "\n• Today: " . $user_stats['requests_today'] . "/" . MAX_REQUESTS_PER_DAY . "\n\n🎬 <b>Recent Requests:</b>\n";
+                    $message_text = "📋 <b>Your Movie Requests</b>\n\n📊 <b>Stats:</b>\n• Total: " . $user_stats['total_requests'] . "\n• Approved: " . $user_stats['approved'] . "\n• Pending: " . $user_stats['pending'] . "\n• Rejected: " . $user_stats['rejected'] . "\n• Today: " . $user_stats['requests_today'] . "/" . MAX_REQUESTS_PER_DAY . "\n\n🎬 <b>Recent Requests:</b>\n";
                     $i = 1;
                     foreach ($requests as $req) {
                         $status_icon = $req['status'] == 'approved' ? '✅' : ($req['status'] == 'rejected' ? '❌' : '⏳');
                         $movie_name = htmlspecialchars($req['movie_name'], ENT_QUOTES, 'UTF-8');
-                        $message .= "$i. $status_icon <b>" . $movie_name . "</b>\n   ID: #" . $req['id'] . " | " . ucfirst($req['status']) . "\n   Date: " . date('d M, H:i', strtotime($req['created_at'])) . "\n\n";
+                        $message_text .= "$i. $status_icon <b>" . $movie_name . "</b>\n   ID: #" . $req['id'] . " | " . ucfirst($req['status']) . "\n   Date: " . date('d M, H:i', strtotime($req['created_at'])) . "\n\n";
                         $i++;
                     }
-                    sendMessage($chat_id, $message, null, 'HTML');
+                    sendMessage($chat_id, $message_text, null, 'HTML');
                     break;
                     
                 case '/pendingrequests':
@@ -2210,22 +2211,28 @@ if ($update) {
                         sendMessage($chat_id, $msg . ".");
                         break;
                     }
-                    $message = "📋 <b>Pending Requests" . ($filter_movie ? " (Filter: $filter_movie)" : "") . "</b>\n\n📊 <b>System Stats:</b>\n• Total: " . $stats['total_requests'] . "\n• Pending: " . $stats['pending'] . "\n• Approved: " . $stats['approved'] . "\n• Rejected: " . $stats['rejected'] . "\n\n🎬 <b>Showing " . count($requests) . " requests:</b>\n\n";
+                    $message_text = "📋 <b>Pending Requests" . ($filter_movie ? " (Filter: $filter_movie)" : "") . "</b>\n\n📊 <b>System Stats:</b>\n• Total: " . $stats['total_requests'] . "\n• Pending: " . $stats['pending'] . "\n• Approved: " . $stats['approved'] . "\n• Rejected: " . $stats['rejected'] . "\n\n🎬 <b>Showing " . count($requests) . " requests:</b>\n\n";
                     $keyboard = ['inline_keyboard' => []];
                     foreach ($requests as $req) {
                         $movie_name = htmlspecialchars($req['movie_name'], ENT_QUOTES, 'UTF-8');
                         $user_name = htmlspecialchars($req['user_name'] ?: "ID: " . $req['user_id'], ENT_QUOTES, 'UTF-8');
-                        $message .= "🔸 <b>#" . $req['id'] . ":</b> " . $movie_name . "\n   👤 User: " . $user_name . "\n   📅 Date: " . date('d M H:i', strtotime($req['created_at'])) . "\n\n";
-                        $keyboard['inline_keyboard'][] = [['text' => '✅ Approve #' . $req['id'], 'callback_data' => 'approve_' . $req['id']], ['text' => '❌ Reject #' . $req['id'], 'callback_data' => 'reject_' . $req['id']]];
+                        $message_text .= "🔸 <b>#" . $req['id'] . ":</b> " . $movie_name . "\n   👤 User: " . $user_name . "\n   📅 Date: " . date('d M H:i', strtotime($req['created_at'])) . "\n\n";
+                        $keyboard['inline_keyboard'][] = [
+                            ['text' => '✅ Approve #' . $req['id'], 'callback_data' => 'approve_' . $req['id']],
+                            ['text' => '❌ Reject #' . $req['id'], 'callback_data' => 'reject_' . $req['id']]
+                        ];
                     }
                     $request_ids = array_column($requests, 'id');
                     $current_page_data = base64_encode(json_encode($request_ids));
-                    $keyboard['inline_keyboard'][] = [['text' => '✅ Bulk Approve This Page', 'callback_data' => 'bulk_approve_' . $current_page_data], ['text' => '❌ Bulk Reject This Page', 'callback_data' => 'bulk_reject_' . $current_page_data]];
+                    $keyboard['inline_keyboard'][] = [
+                        ['text' => '✅ Bulk Approve This Page', 'callback_data' => 'bulk_approve_' . $current_page_data],
+                        ['text' => '❌ Bulk Reject This Page', 'callback_data' => 'bulk_reject_' . $current_page_data]
+                    ];
                     if (count($requests) >= $limit) {
                         $next_limit = $limit + 10;
                         $keyboard['inline_keyboard'][] = [['text' => '⏭️ Load More', 'callback_data' => 'pending_more_' . $next_limit]];
                     }
-                    sendMessage($chat_id, $message, $keyboard, 'HTML');
+                    sendMessage($chat_id, $message_text, $keyboard, 'HTML');
                     break;
                     
                 case '/1stupload':
@@ -2330,6 +2337,8 @@ if ($update) {
         }
     }
     
+    // ==================== FIXED CALLBACK QUERY HANDLING ====================
+    // NO 'break' OUTSIDE LOOP/SWITCH - ALL FIXED
     if (isset($update['callback_query'])) {
         $query = $update['callback_query'];
         $message = $query['message'];
@@ -2349,7 +2358,12 @@ if ($update) {
                 
                 if (!empty($movie_items)) {
                     $sent_count = 0;
-                    foreach ($movie_items as $item) { if (deliver_item_to_chat($chat_id, $item)) { $sent_count++; usleep(300000); } }
+                    foreach ($movie_items as $item) { 
+                        if (deliver_item_to_chat($chat_id, $item)) { 
+                            $sent_count++; 
+                            usleep(300000); 
+                        } 
+                    }
                     $channel_type = getChannelType($movie_items[0]['channel_id']);
                     $source_note = $channel_type === 'public' ? " (Forwarded from " . getChannelUsername($movie_items[0]['channel_id']) . ")" : " (Source hidden)";
                     sendMessage($chat_id, "✅ Sent $sent_count copies of '$movie_name'$source_note\n\n📢 Join: @EntertainmentTadka786");
@@ -2358,7 +2372,9 @@ if ($update) {
                     $stats = json_decode(file_get_contents(STATS_FILE), true);
                     $stats['total_downloads'] = ($stats['total_downloads'] ?? 0) + $sent_count;
                     file_put_contents(STATS_FILE, json_encode($stats, JSON_PRETTY_PRINT));
-                } else { answerCallbackQuery($query['id'], "❌ Movie not found", true); }
+                } else { 
+                    answerCallbackQuery($query['id'], "❌ Movie not found", true); 
+                }
             }
         }
         elseif (strpos($data, 'download_') === 0) {
@@ -2381,13 +2397,181 @@ if ($update) {
                     $stats = json_decode(file_get_contents(STATS_FILE), true);
                     $stats['total_downloads'] = ($stats['total_downloads'] ?? 0) + $sent;
                     file_put_contents(STATS_FILE, json_encode($stats, JSON_PRETTY_PRINT));
-                } else answerCallbackQuery($query['id'], "❌ Could not forward movies");
-            } else answerCallbackQuery($query['id'], "❌ Movie not found");
+                } else {
+                    answerCallbackQuery($query['id'], "❌ Could not forward movies");
+                }
+            } else {
+                answerCallbackQuery($query['id'], "❌ Movie not found");
+            }
         }
-        elseif (strpos($data, 'tu_prev_') === 0) { $page = (int)str_replace('tu_prev_', '', $data); totalupload_controller($chat_id, $page); answerCallbackQuery($query['id'], "Page $page"); }
-        elseif (strpos($data, 'tu_next_') === 0) { $page = (int)str_replace('tu_next_', '', $data); totalupload_controller($chat_id, $page); answerCallbackQuery($query['id'], "Page $page"); }
-        elseif (strpos($data, 'tu_view_') === 0) { $page = (int)str_replace('tu_view_', '', $data); $all = $csvManager->getCachedData(); $start = ($page - 1) * ITEMS_PER_PAGE; $page_movies = array_slice($all, $start, ITEMS_PER_PAGE); $sent = 0; foreach ($page_movies as $movie) { if (deliver_item_to_chat($chat_id, $movie)) $sent++; usleep(500000); } answerCallbackQuery($query['id'], "✅ Re-sent $sent movies"); }
-        elseif ($data === 'tu_stop') { sendMessage($chat_id, "✅ Pagination stopped. Type /totalupload to start again."); answerCallbackQuery($query['id'], "Stopped"); }
+        elseif (strpos($data, 'approve_') === 0) {
+            if (!in_array($user_id, ADMIN_IDS)) { 
+                answerCallbackQuery($query['id'], "❌ Admin only!", true); 
+            } else {
+                $request_id = str_replace('approve_', '', $data);
+                $result = $requestSystem->approveRequest($request_id, $user_id);
+                if ($result['success']) {
+                    $request = $result['request'];
+                    $new_text = $message['text'] . "\n\n✅ <b>Approved by Admin</b>\n🕒 " . date('H:i:s');
+                    editMessageText($chat_id, $message['message_id'], $new_text, null, 'HTML');
+                    answerCallbackQuery($query['id'], "✅ Request #$request_id approved");
+                    notifyUserAboutRequest($request['user_id'], $request, 'approved');
+                } else {
+                    answerCallbackQuery($query['id'], $result['message'], true);
+                }
+            }
+        }
+        elseif (strpos($data, 'reject_') === 0) {
+            if (!in_array($user_id, ADMIN_IDS)) { 
+                answerCallbackQuery($query['id'], "❌ Admin only!", true); 
+            } else {
+                $request_id = str_replace('reject_', '', $data);
+                $keyboard = ['inline_keyboard' => [
+                    [['text' => 'Already Available', 'callback_data' => 'reject_reason_' . $request_id . '_already_available'], 
+                     ['text' => 'Invalid Request', 'callback_data' => 'reject_reason_' . $request_id . '_invalid_request']],
+                    [['text' => 'Low Quality', 'callback_data' => 'reject_reason_' . $request_id . '_low_quality'], 
+                     ['text' => 'Not Available', 'callback_data' => 'reject_reason_' . $request_id . '_not_available']],
+                    [['text' => 'Custom Reason...', 'callback_data' => 'reject_custom_' . $request_id]]
+                ]];
+                editMessageText($chat_id, $message['message_id'], "Select rejection reason for Request #$request_id:", $keyboard);
+                answerCallbackQuery($query['id'], "Select rejection reason");
+            }
+        }
+        elseif (strpos($data, 'reject_reason_') === 0) {
+            if (!in_array($user_id, ADMIN_IDS)) { 
+                answerCallbackQuery($query['id'], "❌ Admin only!", true); 
+            } else {
+                $parts = explode('_', $data);
+                $request_id = $parts[2];
+                $reason_key = $parts[3];
+                $reason_map = [
+                    'already_available' => 'Movie is already available in our channels',
+                    'invalid_request' => 'Invalid movie name or request',
+                    'low_quality' => 'Cannot find good quality version',
+                    'not_available' => 'Movie is not available anywhere'
+                ];
+                $reason = $reason_map[$reason_key] ?? 'Not specified';
+                $result = $requestSystem->rejectRequest($request_id, $user_id, $reason);
+                if ($result['success']) {
+                    $request = $result['request'];
+                    $new_text = $message['text'] . "\n\n❌ <b>Rejected by Admin</b>\n📝 Reason: $reason\n🕒 " . date('H:i:s');
+                    editMessageText($chat_id, $message['message_id'], $new_text, null, 'HTML');
+                    answerCallbackQuery($query['id'], "❌ Request #$request_id rejected");
+                    notifyUserAboutRequest($request['user_id'], $request, 'rejected');
+                } else {
+                    answerCallbackQuery($query['id'], $result['message'], true);
+                }
+            }
+        }
+        elseif (strpos($data, 'bulk_approve_') === 0) {
+            if (!in_array($user_id, ADMIN_IDS)) { 
+                answerCallbackQuery($query['id'], "❌ Admin only!", true); 
+            } else {
+                $encoded_data = str_replace('bulk_approve_', '', $data);
+                $request_ids = json_decode(base64_decode($encoded_data), true);
+                $result = $requestSystem->bulkApprove($request_ids, $user_id);
+                $new_text = $message['text'] . "\n\n✅ <b>Bulk Approved {$result['approved_count']}/{$result['total_count']} requests</b>\n🕒 " . date('H:i:s');
+                editMessageText($chat_id, $message['message_id'], $new_text, null, 'HTML');
+                answerCallbackQuery($query['id'], "✅ Approved {$result['approved_count']} requests");
+                foreach ($request_ids as $req_id) { 
+                    $request = $requestSystem->getRequest($req_id); 
+                    if ($request && $request['status'] == 'approved') {
+                        notifyUserAboutRequest($request['user_id'], $request, 'approved');
+                    }
+                }
+            }
+        }
+        elseif (strpos($data, 'bulk_reject_') === 0) {
+            if (!in_array($user_id, ADMIN_IDS)) { 
+                answerCallbackQuery($query['id'], "❌ Admin only!", true); 
+            } else {
+                $encoded_data = str_replace('bulk_reject_', '', $data);
+                $request_ids = json_decode(base64_decode($encoded_data), true);
+                $reason = "Bulk rejected by admin";
+                $result = $requestSystem->bulkReject($request_ids, $user_id, $reason);
+                $new_text = $message['text'] . "\n\n❌ <b>Bulk Rejected {$result['rejected_count']}/{$result['total_count']} requests</b>\n📝 Reason: $reason\n🕒 " . date('H:i:s');
+                editMessageText($chat_id, $message['message_id'], $new_text, null, 'HTML');
+                answerCallbackQuery($query['id'], "❌ Rejected {$result['rejected_count']} requests");
+                foreach ($request_ids as $req_id) { 
+                    $request = $requestSystem->getRequest($req_id); 
+                    if ($request && $request['status'] == 'rejected') {
+                        notifyUserAboutRequest($request['user_id'], $request, 'rejected');
+                    }
+                }
+            }
+        }
+        elseif (strpos($data, 'pending_more_') === 0) {
+            if (!in_array($user_id, ADMIN_IDS)) { 
+                answerCallbackQuery($query['id'], "❌ Admin only!", true); 
+            } else {
+                $limit = str_replace('pending_more_', '', $data);
+                $requests = $requestSystem->getPendingRequests($limit);
+                $stats = $requestSystem->getStats();
+                $message_text = "📋 <b>Pending Requests (Showing $limit)</b>\n\n📊 <b>System Stats:</b>\n• Total: " . $stats['total_requests'] . "\n• Pending: " . $stats['pending'] . "\n• Approved: " . $stats['approved'] . "\n• Rejected: " . $stats['rejected'] . "\n\n🎬 <b>Showing " . count($requests) . " requests:</b>\n\n";
+                $keyboard = ['inline_keyboard' => []];
+                foreach ($requests as $req) {
+                    $movie_name = htmlspecialchars($req['movie_name'], ENT_QUOTES, 'UTF-8');
+                    $user_name = htmlspecialchars($req['user_name'] ?: "ID: " . $req['user_id'], ENT_QUOTES, 'UTF-8');
+                    $message_text .= "🔸 <b>#" . $req['id'] . ":</b> " . $movie_name . "\n   👤 User: " . $user_name . "\n   📅 Date: " . date('d M H:i', strtotime($req['created_at'])) . "\n\n";
+                    $keyboard['inline_keyboard'][] = [
+                        ['text' => '✅ Approve #' . $req['id'], 'callback_data' => 'approve_' . $req['id']],
+                        ['text' => '❌ Reject #' . $req['id'], 'callback_data' => 'reject_' . $req['id']]
+                    ];
+                }
+                $request_ids = array_column($requests, 'id');
+                $current_page_data = base64_encode(json_encode($request_ids));
+                $keyboard['inline_keyboard'][] = [
+                    ['text' => '✅ Bulk Approve This Page', 'callback_data' => 'bulk_approve_' . $current_page_data],
+                    ['text' => '❌ Bulk Reject This Page', 'callback_data' => 'bulk_reject_' . $current_page_data]
+                ];
+                editMessageText($chat_id, $message['message_id'], $message_text, $keyboard, 'HTML');
+                answerCallbackQuery($query['id'], "Loaded $limit requests");
+            }
+        }
+        elseif (strpos($data, 'reject_custom_') === 0) {
+            if (!in_array($user_id, ADMIN_IDS)) { 
+                answerCallbackQuery($query['id'], "❌ Admin only!", true); 
+            } else {
+                $request_id = str_replace('reject_custom_', '', $data);
+                sendMessage($chat_id, "Please send the custom rejection reason for Request #$request_id:");
+                answerCallbackQuery($query['id'], "Please type the custom reason");
+                $pending_file = 'pending_rejection.json';
+                $pending_data = [
+                    'request_id' => $request_id, 
+                    'admin_id' => $user_id, 
+                    'chat_id' => $chat_id, 
+                    'message_id' => $message['message_id'], 
+                    'timestamp' => time()
+                ];
+                file_put_contents($pending_file, json_encode($pending_data, JSON_PRETTY_PRINT));
+            }
+        }
+        elseif (strpos($data, 'tu_prev_') === 0) { 
+            $page = (int)str_replace('tu_prev_', '', $data); 
+            totalupload_controller($chat_id, $page); 
+            answerCallbackQuery($query['id'], "Page $page"); 
+        }
+        elseif (strpos($data, 'tu_next_') === 0) { 
+            $page = (int)str_replace('tu_next_', '', $data); 
+            totalupload_controller($chat_id, $page); 
+            answerCallbackQuery($query['id'], "Page $page"); 
+        }
+        elseif (strpos($data, 'tu_view_') === 0) { 
+            $page = (int)str_replace('tu_view_', '', $data); 
+            $all = $csvManager->getCachedData(); 
+            $start = ($page - 1) * ITEMS_PER_PAGE; 
+            $page_movies = array_slice($all, $start, ITEMS_PER_PAGE); 
+            $sent = 0; 
+            foreach ($page_movies as $movie) { 
+                if (deliver_item_to_chat($chat_id, $movie)) $sent++; 
+                usleep(500000); 
+            } 
+            answerCallbackQuery($query['id'], "✅ Re-sent $sent movies"); 
+        }
+        elseif ($data === 'tu_stop') { 
+            sendMessage($chat_id, "✅ Pagination stopped. Type /totalupload to start again."); 
+            answerCallbackQuery($query['id'], "Stopped"); 
+        }
         elseif ($data === 'help_command') {
             $help_text = "🤖 <b>Entertainment Tadka Bot - Help</b>\n\n📋 <b>Available Commands:</b>\n/start - Welcome message with channel links\n/help - Show this help message\n/request MovieName - Request a new movie\n/myrequests - View your movie requests\n/checkdate - Show date-wise statistics\n/totalupload - Browse all movies with pagination\n/testcsv - View all movies in database\n/checkcsv - Check CSV data (add 'all' for full list)\n/csvstats - CSV statistics\n";
             if (in_array($user_id, ADMIN_IDS)) $help_text .= "/stats - Admin statistics\n/pendingrequests - View pending requests (Admin only)\n";
@@ -2424,16 +2608,16 @@ if ($update) {
         elseif ($data === 'show_analytics') {
             $analytics_menu = "📊 <b>ANALYTICS MENU</b>\n\nSelect an option:\n\n1️⃣ /1stupload - First upload ever\n2️⃣ /recent - Recent uploads\n3️⃣ /lastupload - Last upload\n4️⃣ /totalupload - Total statistics\n5️⃣ /middleupload - Middle upload\n6️⃣ /uploaddate - Date-wise stats\n7️⃣ /uploadcalendar - Monthly calendar\n\n📈 <b>Complete upload tracking system!</b>";
             sendMessage($chat_id, $analytics_menu);
-            answerCallbackQuery($query['id']);
+            answerCallbackQuery($query['id'], "Analytics menu opened");
         }
         elseif ($data === 'protection_info') {
             $protection_info = "🛡️ <b>COPYRIGHT PROTECTION SYSTEM</b>\n\n⚠️ <b>How it works:</b>\n1. Upload any file to bot\n2. Bot sends warning message\n3. File auto-deletes in " . DELETE_AFTER_MINUTES . " minutes\n4. Forward file to save it\n\n🎯 <b>Features:</b>\n• Progress bar countdown\n• Live timer updates\n• One-click actions\n• Admin controls\n\n🔒 <b>Protect against copyright issues!</b>";
             sendMessage($chat_id, $protection_info);
-            answerCallbackQuery($query['id']);
+            answerCallbackQuery($query['id'], "Protection info");
         }
         elseif ($data === 'request_movie') {
             sendMessage($chat_id, "📝 To request a movie:\n\nUse command:\n<code>/request movie_name</code>\n\nExample:\n<code>/request Animal 2023</code>", null, 'HTML');
-            answerCallbackQuery($query['id']);
+            answerCallbackQuery($query['id'], "Request help");
         }
         elseif (strpos($data, 'auto_request_') === 0) {
             $movie_name = base64_decode(substr($data, 13));
@@ -2462,112 +2646,33 @@ if ($update) {
             $result = $stmt->execute();
             $row = $result->fetchArray(SQLITE3_ASSOC);
             $db->close();
-            if ($row) { $countdown = get_countdown_timer($row['delete_time']); answerCallbackQuery($query['id'], "⏰ Countdown: $countdown", true); }
-        }
-        elseif (strpos($data, 'saved_') === 0) { answerCallbackQuery($query['id'], "✅ Great! File saved successfully."); }
-        elseif (strpos($data, 'delete_now_') === 0 && in_array($user_id, ADMIN_IDS)) {
-            $schedule_id = substr($data, 11);
-            $db = new SQLite3(UPLOADS_DB);
-            $stmt = $db->prepare("SELECT * FROM scheduled_deletes WHERE id = ?");
-            $stmt->bindValue(1, $schedule_id, SQLITE3_INTEGER);
-            $result = $stmt->execute();
-            $row = $result->fetchArray(SQLITE3_ASSOC);
-            if ($row) {
-                deleteMessage($row['chat_id'], $row['message_id']);
-                $update_stmt = $db->prepare("UPDATE scheduled_deletes SET status = 'deleted_manual' WHERE id = ?");
-                $update_stmt->bindValue(1, $schedule_id, SQLITE3_INTEGER);
-                $update_stmt->execute();
-                answerCallbackQuery($query['id'], "🗑️ File deleted immediately!", true);
+            if ($row) { 
+                $countdown = get_countdown_timer($row['delete_time']); 
+                answerCallbackQuery($query['id'], "⏰ Countdown: $countdown", true); 
             }
-            $db->close();
         }
-        elseif (strpos($data, 'approve_') === 0) {
-            if (!in_array($user_id, ADMIN_IDS)) { answerCallbackQuery($query['id'], "❌ Admin only!", true); break; }
-            $request_id = str_replace('approve_', '', $data);
-            $result = $requestSystem->approveRequest($request_id, $user_id);
-            if ($result['success']) {
-                $request = $result['request'];
-                $new_text = $message['text'] . "\n\n✅ <b>Approved by Admin</b>\n🕒 " . date('H:i:s');
-                editMessageText($chat_id, $message['message_id'], $new_text, null, 'HTML');
-                answerCallbackQuery($query['id'], "✅ Request #$request_id approved");
-                notifyUserAboutRequest($request['user_id'], $request, 'approved');
-            } else answerCallbackQuery($query['id'], $result['message'], true);
+        elseif (strpos($data, 'saved_') === 0) { 
+            answerCallbackQuery($query['id'], "✅ Great! File saved successfully."); 
         }
-        elseif (strpos($data, 'reject_') === 0) {
-            if (!in_array($user_id, ADMIN_IDS)) { answerCallbackQuery($query['id'], "❌ Admin only!", true); break; }
-            $request_id = str_replace('reject_', '', $data);
-            $keyboard = ['inline_keyboard' => [
-                [['text' => 'Already Available', 'callback_data' => 'reject_reason_' . $request_id . '_already_available'], ['text' => 'Invalid Request', 'callback_data' => 'reject_reason_' . $request_id . '_invalid_request']],
-                [['text' => 'Low Quality', 'callback_data' => 'reject_reason_' . $request_id . '_low_quality'], ['text' => 'Not Available', 'callback_data' => 'reject_reason_' . $request_id . '_not_available']],
-                [['text' => 'Custom Reason...', 'callback_data' => 'reject_custom_' . $request_id]]
-            ]];
-            editMessageText($chat_id, $message['message_id'], "Select rejection reason for Request #$request_id:", $keyboard);
-            answerCallbackQuery($query['id'], "Select rejection reason");
-        }
-        elseif (strpos($data, 'reject_reason_') === 0) {
-            if (!in_array($user_id, ADMIN_IDS)) { answerCallbackQuery($query['id'], "❌ Admin only!", true); break; }
-            $parts = explode('_', $data);
-            $request_id = $parts[2];
-            $reason_key = $parts[3];
-            $reason_map = ['already_available' => 'Movie is already available in our channels', 'invalid_request' => 'Invalid movie name or request', 'low_quality' => 'Cannot find good quality version', 'not_available' => 'Movie is not available anywhere'];
-            $reason = $reason_map[$reason_key] ?? 'Not specified';
-            $result = $requestSystem->rejectRequest($request_id, $user_id, $reason);
-            if ($result['success']) {
-                $request = $result['request'];
-                $new_text = $message['text'] . "\n\n❌ <b>Rejected by Admin</b>\n📝 Reason: $reason\n🕒 " . date('H:i:s');
-                editMessageText($chat_id, $message['message_id'], $new_text, null, 'HTML');
-                answerCallbackQuery($query['id'], "❌ Request #$request_id rejected");
-                notifyUserAboutRequest($request['user_id'], $request, 'rejected');
-            } else answerCallbackQuery($query['id'], $result['message'], true);
-        }
-        elseif (strpos($data, 'reject_custom_') === 0) {
-            if (!in_array($user_id, ADMIN_IDS)) { answerCallbackQuery($query['id'], "❌ Admin only!", true); break; }
-            $request_id = str_replace('reject_custom_', '', $data);
-            sendMessage($chat_id, "Please send the custom rejection reason for Request #$request_id:");
-            answerCallbackQuery($query['id'], "Please type the custom reason");
-            $pending_file = 'pending_rejection.json';
-            $pending_data = ['request_id' => $request_id, 'admin_id' => $user_id, 'chat_id' => $chat_id, 'message_id' => $message['message_id'], 'timestamp' => time()];
-            file_put_contents($pending_file, json_encode($pending_data, JSON_PRETTY_PRINT));
-        }
-        elseif (strpos($data, 'bulk_approve_') === 0) {
-            if (!in_array($user_id, ADMIN_IDS)) { answerCallbackQuery($query['id'], "❌ Admin only!", true); break; }
-            $encoded_data = str_replace('bulk_approve_', '', $data);
-            $request_ids = json_decode(base64_decode($encoded_data), true);
-            $result = $requestSystem->bulkApprove($request_ids, $user_id);
-            $new_text = $message['text'] . "\n\n✅ <b>Bulk Approved {$result['approved_count']}/{$result['total_count']} requests</b>\n🕒 " . date('H:i:s');
-            editMessageText($chat_id, $message['message_id'], $new_text, null, 'HTML');
-            answerCallbackQuery($query['id'], "✅ Approved {$result['approved_count']} requests");
-            foreach ($request_ids as $req_id) { $request = $requestSystem->getRequest($req_id); if ($request && $request['status'] == 'approved') notifyUserAboutRequest($request['user_id'], $request, 'approved'); }
-        }
-        elseif (strpos($data, 'bulk_reject_') === 0) {
-            if (!in_array($user_id, ADMIN_IDS)) { answerCallbackQuery($query['id'], "❌ Admin only!", true); break; }
-            $encoded_data = str_replace('bulk_reject_', '', $data);
-            $request_ids = json_decode(base64_decode($encoded_data), true);
-            $reason = "Bulk rejected by admin";
-            $result = $requestSystem->bulkReject($request_ids, $user_id, $reason);
-            $new_text = $message['text'] . "\n\n❌ <b>Bulk Rejected {$result['rejected_count']}/{$result['total_count']} requests</b>\n📝 Reason: $reason\n🕒 " . date('H:i:s');
-            editMessageText($chat_id, $message['message_id'], $new_text, null, 'HTML');
-            answerCallbackQuery($query['id'], "❌ Rejected {$result['rejected_count']} requests");
-            foreach ($request_ids as $req_id) { $request = $requestSystem->getRequest($req_id); if ($request && $request['status'] == 'rejected') notifyUserAboutRequest($request['user_id'], $request, 'rejected'); }
-        }
-        elseif (strpos($data, 'pending_more_') === 0) {
-            if (!in_array($user_id, ADMIN_IDS)) { answerCallbackQuery($query['id'], "❌ Admin only!", true); break; }
-            $limit = str_replace('pending_more_', '', $data);
-            $requests = $requestSystem->getPendingRequests($limit);
-            $stats = $requestSystem->getStats();
-            $message_text = "📋 <b>Pending Requests (Showing $limit)</b>\n\n📊 <b>System Stats:</b>\n• Total: " . $stats['total_requests'] . "\n• Pending: " . $stats['pending'] . "\n• Approved: " . $stats['approved'] . "\n• Rejected: " . $stats['rejected'] . "\n\n🎬 <b>Showing " . count($requests) . " requests:</b>\n\n";
-            $keyboard = ['inline_keyboard' => []];
-            foreach ($requests as $req) {
-                $movie_name = htmlspecialchars($req['movie_name'], ENT_QUOTES, 'UTF-8');
-                $user_name = htmlspecialchars($req['user_name'] ?: "ID: " . $req['user_id'], ENT_QUOTES, 'UTF-8');
-                $message_text .= "🔸 <b>#" . $req['id'] . ":</b> " . $movie_name . "\n   👤 User: " . $user_name . "\n   📅 Date: " . date('d M H:i', strtotime($req['created_at'])) . "\n\n";
-                $keyboard['inline_keyboard'][] = [['text' => '✅ Approve #' . $req['id'], 'callback_data' => 'approve_' . $req['id']], ['text' => '❌ Reject #' . $req['id'], 'callback_data' => 'reject_' . $req['id']]];
+        elseif (strpos($data, 'delete_now_') === 0) {
+            if (in_array($user_id, ADMIN_IDS)) {
+                $schedule_id = substr($data, 11);
+                $db = new SQLite3(UPLOADS_DB);
+                $stmt = $db->prepare("SELECT * FROM scheduled_deletes WHERE id = ?");
+                $stmt->bindValue(1, $schedule_id, SQLITE3_INTEGER);
+                $result = $stmt->execute();
+                $row = $result->fetchArray(SQLITE3_ASSOC);
+                if ($row) {
+                    deleteMessage($row['chat_id'], $row['message_id']);
+                    $update_stmt = $db->prepare("UPDATE scheduled_deletes SET status = 'deleted_manual' WHERE id = ?");
+                    $update_stmt->bindValue(1, $schedule_id, SQLITE3_INTEGER);
+                    $update_stmt->execute();
+                    answerCallbackQuery($query['id'], "🗑️ File deleted immediately!", true);
+                }
+                $db->close();
+            } else {
+                answerCallbackQuery($query['id'], "❌ Admin only!", true);
             }
-            $request_ids = array_column($requests, 'id');
-            $current_page_data = base64_encode(json_encode($request_ids));
-            $keyboard['inline_keyboard'][] = [['text' => '✅ Bulk Approve This Page', 'callback_data' => 'bulk_approve_' . $current_page_data], ['text' => '❌ Bulk Reject This Page', 'callback_data' => 'bulk_reject_' . $current_page_data]];
-            editMessageText($chat_id, $message['message_id'], $message_text, $keyboard, 'HTML');
-            answerCallbackQuery($query['id'], "Loaded $limit requests");
         }
     }
     
@@ -2584,7 +2689,9 @@ if ($update) {
                 editMessageText($pending_data['chat_id'], $pending_data['message_id'], $message['text'] . "\n\n" . $update_text, null, 'HTML');
                 sendMessage($chat_id, "✅ Request #$request_id rejected with custom reason.");
                 notifyUserAboutRequest($request['user_id'], $request, 'rejected');
-            } else sendMessage($chat_id, "❌ Failed: " . $result['message']);
+            } else {
+                sendMessage($chat_id, "❌ Failed: " . $result['message']);
+            }
             unlink($pending_file);
         }
     }

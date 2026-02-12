@@ -1,14 +1,36 @@
 {
-    "name": "entertainmenttadka/telegram-movie-bot",
-    "description": "Telegram Movie Bot for EntertainmentTadka",
+    "name": "entertainment-tadka-bot",
+    "description": "Telegram Bot for Entertainment Tadka with Movie Request System",
     "type": "project",
     "require": {
-        "php": ">=8.0",
-        "vlucas/phpdotenv": "^5.6"
+        "php": ">=8.1.0"
+    },
+    "require-dev": {
+        "ext-curl": "*",
+        "ext-json": "*",
+        "ext-mbstring": "*",
+        "ext-zip": "*",
+        "ext-session": "*"
     },
     "autoload": {
-        "psr-4": {
-            "App\\": "src/"
-        }
+        "files": ["index.php"]
+    },
+    "scripts": {
+        "post-install-cmd": [
+            "chmod 666 users.json movies.csv error.log requests.json bot_stats.json || true",
+            "mkdir -p backups cache",
+            "chmod 777 backups cache"
+        ],
+        "post-update-cmd": [
+            "chmod 666 users.json movies.csv error.log requests.json bot_stats.json || true",
+            "mkdir -p backups cache",
+            "chmod 777 backups cache"
+        ]
+    },
+    "config": {
+        "platform-check": false,
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true
     }
 }

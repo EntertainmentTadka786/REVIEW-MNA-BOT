@@ -1,0 +1,11 @@
+{
+    "requests": {},
+    "last_request_id": 0,
+    "user_stats": {},
+    "system_stats": {
+        "total_requests": 0,
+        "approved": 0,
+        "rejected": 0,
+        "pending": 0
+    }
+}

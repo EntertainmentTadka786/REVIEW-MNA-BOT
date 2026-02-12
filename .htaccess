@@ -1,0 +1,61 @@
+# Enable rewrite engine
+RewriteEngine On
+
+# Set base directory
+RewriteBase /
+
+# Security headers
+Header set X-Content-Type-Options "nosniff"
+Header set X-Frame-Options "DENY"
+Header set X-XSS-Protection "1; mode=block"
+
+# Force HTTPS if not Render internal
+RewriteCond %{HTTP:X-Forwarded-Proto} !https
+RewriteCond %{HTTPS} off
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Redirect all requests to index.php except for existing files/directories
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [QSA,L]
+
+# Handle OPTIONS method for CORS
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule ^(.*)$ $1 [R=200,L]
+
+# Set proper content types
+AddType application/json .json
+AddType text/csv .csv
+
+# Disable directory listing
+Options -Indexes
+
+# Protect sensitive files
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+<FilesMatch "\.(json|csv|log|ini|env|sql|db)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Allow access to specific files only
+<Files "^(index\.php|\.htaccess)$">
+    Order allow,deny
+    Allow from all
+</Files>
+
+# PHP Settings
+php_value session.save_path "/tmp"
+php_value session.gc_maxlifetime 1440
+php_value upload_max_filesize 100M
+php_value post_max_size 100M
+php_value memory_limit 256M
+php_value max_execution_time 300
+
+# Cache control for static files
+<FilesMatch "\.(ico|pdf|flv|jpg|jpeg|png|gif|js|css|swf)$">
+    Header set Cache-Control "max-age=86400, public"
+</FilesMatch>

@@ -1,0 +1,54 @@
+# Dependency directories
+/vendor/
+/node_modules/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Log files
+*.log
+error.log
+php_error.log
+
+# Backup files
+*.bak
+*.backup
+
+# Data files (except structure)
+/data/*
+!/data/.gitkeep
+
+# Cache files
+/cache/*
+!/cache/.gitkeep
+
+# Backup directory
+/backups/*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+*.temp
+
+# Docker
+docker-compose.override.yml
+
+# Session files
+/tmp/*
+/sessions/*

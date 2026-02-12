@@ -1,0 +1,51 @@
+
+---
+
+## 1️⃣5️⃣ `render.yaml`
+
+```yaml
+services:
+  - type: web
+    name: entertainment-tadka-bot
+    env: docker
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: BOT_TOKEN
+        sync: false
+      - key: BOT_USERNAME
+        value: EntertainmentTadkaBot
+      - key: ADMIN_ID
+        value: 1080317415
+      - key: PUBLIC_CHANNEL_1_ID
+        value: -1003181705395
+      - key: PUBLIC_CHANNEL_1_USERNAME
+        value: '@EntertainmentTadka786'
+      - key: PUBLIC_CHANNEL_2_ID
+        value: -1002831605258
+      - key: PUBLIC_CHANNEL_2_USERNAME
+        value: '@threater_print_movies'
+      - key: PUBLIC_CHANNEL_3_ID
+        value: -1002964109368
+      - key: PUBLIC_CHANNEL_3_USERNAME
+        value: '@ETBackup'
+      - key: PRIVATE_CHANNEL_1_ID
+        value: -1003251791991
+      - key: PRIVATE_CHANNEL_2_ID
+        value: -1002337293281
+      - key: PRIVATE_CHANNEL_3_ID
+        value: -1003614546520
+      - key: REQUEST_GROUP_ID
+        value: -1003083386043
+      - key: REQUEST_GROUP_USERNAME
+        value: '@EntertainmentTadka7860'
+      - key: API_ID
+        value: 21944581
+      - key: API_HASH
+        value: 7b1c174a5cd3466e25a976c39a791737
+    healthCheckPath: /
+    autoDeploy: true
+    plan: free
+    domains:
+      - entertainment-tadka-bot.onrender.com

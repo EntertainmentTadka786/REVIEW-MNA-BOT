@@ -10,3 +10,8 @@ services:
     environment:
       - APACHE_RUN_USER=www-data
       - APACHE_RUN_GROUP=www-data
+      - BOT_TOKEN=${BOT_TOKEN}
+      - ADMIN_ID=${ADMIN_ID}
+      - CHANNEL_ID=${CHANNEL_ID}
+    env_file:
+      - MNA_BOT.env

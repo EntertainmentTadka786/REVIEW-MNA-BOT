@@ -3,6 +3,7 @@
 // ENTERTAINMENT TADKA MEGA BOT v3.0
 // COMPLETE MERGE: index.php + index1.php
 // ALL FEATURES + SECURITY + ANALYTICS
+// FIXED: Undefined constant REQUEST_FILE
 // FIXED: 'break' not in loop/switch error
 // ============================================
 
@@ -142,6 +143,7 @@ define('UPLOADS_DB', 'uploads_analytics.db');
 define('LOG_FILE', 'bot_activity.log');
 define('DELETION_LOG', 'deletions.log');
 define('ERROR_LOG', 'errors.log');
+define('REQUEST_FILE', REQUESTS_FILE); // FIXED: Add this line!
 
 $MAINTENANCE_MODE = false;
 $MAINTENANCE_MESSAGE = "🛠️ <b>Bot Under Maintenance</b>\n\nWe're temporarily unavailable for updates.\nWill be back in few days!\n\nThanks for patience 🙏";
@@ -2338,7 +2340,6 @@ if ($update) {
     }
     
     // ==================== FIXED CALLBACK QUERY HANDLING ====================
-    // NO 'break' OUTSIDE LOOP/SWITCH - ALL FIXED
     if (isset($update['callback_query'])) {
         $query = $update['callback_query'];
         $message = $query['message'];
